@@ -2,19 +2,38 @@ local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 local RunService = game:GetService("RunService")
 local Players = game:GetService("Players")
-
+local CoreGui = game:GetService("CoreGui")
 local LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
+
+-- Executor-compatible parent detection
+local function GetParent()
+    if gethui then
+        local ok, ui = pcall(gethui)
+        if ok and ui then return ui end
+    end
+    if syn and syn.protect_gui then
+        local ok, sg = pcall(function()
+            local g = Instance.new("ScreenGui")
+            syn.protect_gui(g)
+            return g
+        end)
+        if ok then return sg end
+    end
+    if get_hidden_gui then
+        local ok, h = pcall(get_hidden_gui)
+        if ok and h then return h end
+    end
+    local ok, cg = pcall(function() return CoreGui end)
+    if ok and cg then return cg end
+    return LocalPlayer:WaitForChild("PlayerGui")
+end
 
 local Library = {}
 Library.__index = Library
 Library.Flags = {}
-Library.Connections = {}
 Library.Opened = true
 Library.ToggleKey = Enum.KeyCode.RightShift
-Library.Gui = nil
 
--- ============ THEMES ============
 local Themes = {
     Dark = {
         Background = Color3.fromRGB(25, 25, 30),
@@ -64,37 +83,30 @@ local Themes = {
 
 Library.Theme = Themes.Dark
 
--- ============ UTILITIES ============
-local function Create(className, properties)
-    local instance = Instance.new(className)
-    for k, v in pairs(properties or {}) do
-        instance[k] = v
-    end
-    return instance
+local function Create(class, props)
+    local inst = Instance.new(class)
+    for k, v in pairs(props or {}) do inst[k] = v end
+    return inst
 end
 
-local function Corner(radius)
-    return Create("UICorner", {CornerRadius = UDim.new(0, radius or 6)})
+local function Corner(r)
+    return Create("UICorner", {CornerRadius = UDim.new(0, r or 6)})
 end
 
 local function Stroke(color, thickness)
-    return Create("UIStroke", {
-        Color = color or Library.Theme.Border,
-        Thickness = thickness or 1,
-    })
+    return Create("UIStroke", {Color = color or Library.Theme.Border, Thickness = thickness or 1})
 end
 
-local function Tween(obj, time, props)
-    local tween = TweenService:Create(obj, TweenInfo.new(time or 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), props)
-    tween:Play()
-    return tween
+local function Tween(obj, t, props)
+    local tw = TweenService:Create(obj, TweenInfo.new(t or 0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), props)
+    tw:Play()
+    return tw
 end
 
--- Draggable with mobile support
 local function MakeDraggable(frame, handle)
     handle = handle or frame
     local dragging, dragInput, dragStart, startPos
-    
+
     local function update(input)
         local delta = input.Position - dragStart
         frame.Position = UDim2.new(
@@ -102,14 +114,13 @@ local function MakeDraggable(frame, handle)
             startPos.Y.Scale, startPos.Y.Offset + delta.Y
         )
     end
-    
+
     handle.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 
-           or input.UserInputType == Enum.UserInputType.Touch then
+        if input.UserInputType == Enum.UserInputType.MouseButton1
+        or input.UserInputType == Enum.UserInputType.Touch then
             dragging = true
             dragStart = input.Position
             startPos = frame.Position
-            
             input.Changed:Connect(function()
                 if input.UserInputState == Enum.UserInputState.End then
                     dragging = false
@@ -117,45 +128,45 @@ local function MakeDraggable(frame, handle)
             end)
         end
     end)
-    
+
     handle.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement 
-           or input.UserInputType == Enum.UserInputType.Touch then
+        if input.UserInputType == Enum.UserInputType.MouseMovement
+        or input.UserInputType == Enum.UserInputType.Touch then
             dragInput = input
         end
     end)
-    
+
     UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            update(input)
-        end
+        if input == dragInput and dragging then update(input) end
     end)
 end
 
--- ============ WINDOW CREATION ============
 function Library:CreateWindow(config)
     config = config or {}
     local title = config.Title or "SimpleUI"
     local themeName = config.Theme or "Dark"
     Library.Theme = Themes[themeName] or Themes.Dark
-    
-    if Library.Gui then Library.Gui:Destroy() end
-    
-    -- ScreenGui
+
+    -- Clean up previous
+    if Library.Gui then
+        pcall(function() Library.Gui:Destroy() end)
+    end
+
+    local parent = GetParent()
+
     local gui = Create("ScreenGui", {
-        Name = "SimpleUI",
+        Name = "SimpleUI_" .. tostring(math.random(1000, 9999)),
         ResetOnSpawn = false,
         ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
         IgnoreGuiInset = true,
+        DisplayOrder = 999,
     })
-    if gethui then gui.Parent = gethui() else gui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+    gui.Parent = parent
     Library.Gui = gui
-    
-    -- Mobile detection for sizing
+
     local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
-    local defaultSize = isMobile and UDim2.new(0, 280, 0, 350) or UDim2.new(0, 500, 0, 350)
-    
-    -- Main frame
+    local defaultSize = isMobile and UDim2.new(0, 300, 0, 380) or UDim2.new(0, 500, 0, 350)
+
     local main = Create("Frame", {
         Name = "Main",
         Size = defaultSize,
@@ -165,11 +176,9 @@ function Library:CreateWindow(config)
         BorderSizePixel = 0,
         Parent = gui,
     })
-    main:AddCorner? 
     Corner(10).Parent = main
     Stroke(Library.Theme.Border, 1).Parent = main
-    
-    -- Top bar
+
     local topBar = Create("Frame", {
         Name = "TopBar",
         Size = UDim2.new(1, 0, 0, 35),
@@ -178,7 +187,6 @@ function Library:CreateWindow(config)
         Parent = main,
     })
     Corner(10).Parent = topBar
-    -- Fix bottom corners
     Create("Frame", {
         Size = UDim2.new(1, 0, 0, 10),
         Position = UDim2.new(0, 0, 1, -10),
@@ -186,8 +194,8 @@ function Library:CreateWindow(config)
         BorderSizePixel = 0,
         Parent = topBar,
     })
-    
-    local titleLabel = Create("TextLabel", {
+
+    Create("TextLabel", {
         Size = UDim2.new(1, -80, 1, 0),
         Position = UDim2.new(0, 12, 0, 0),
         BackgroundTransparency = 1,
@@ -198,15 +206,14 @@ function Library:CreateWindow(config)
         TextXAlignment = Enum.TextXAlignment.Left,
         Parent = topBar,
     })
-    
-    -- Close/minimize buttons
+
     local btnHolder = Create("Frame", {
         Size = UDim2.new(0, 70, 1, 0),
         Position = UDim2.new(1, -75, 0, 0),
         BackgroundTransparency = 1,
         Parent = topBar,
     })
-    
+
     local minimizeBtn = Create("TextButton", {
         Size = UDim2.new(0, 26, 0, 26),
         Position = UDim2.new(0, 0, 0.5, -13),
@@ -219,7 +226,7 @@ function Library:CreateWindow(config)
         Parent = btnHolder,
     })
     Corner(6).Parent = minimizeBtn
-    
+
     local closeBtn = Create("TextButton", {
         Size = UDim2.new(0, 26, 0, 26),
         Position = UDim2.new(0, 34, 0.5, -13),
@@ -232,10 +239,9 @@ function Library:CreateWindow(config)
         Parent = btnHolder,
     })
     Corner(6).Parent = closeBtn
-    
+
     MakeDraggable(main, topBar)
-    
-    -- Container for tab buttons + pages
+
     local navBar = Create("Frame", {
         Name = "NavBar",
         Size = UDim2.new(0, 120, 1, -50),
@@ -249,7 +255,7 @@ function Library:CreateWindow(config)
         SortOrder = Enum.SortOrder.LayoutOrder,
         Parent = navBar,
     })
-    
+
     local pageHolder = Create("Frame", {
         Name = "PageHolder",
         Size = UDim2.new(1, -145, 1, -50),
@@ -257,22 +263,22 @@ function Library:CreateWindow(config)
         BackgroundTransparency = 1,
         Parent = main,
     })
-    
-    -- Closing/minimizing
+
     local minimized = false
     closeBtn.MouseButton1Click:Connect(function()
-        if Library.Closing then Library.Closing() end
-        gui:Destroy()
+        pcall(function()
+            if Library.Closing then Library.Closing() end
+            gui:Destroy()
+        end)
     end)
-    
+
     minimizeBtn.MouseButton1Click:Connect(function()
         minimized = not minimized
         Tween(main, 0.3, {Size = minimized and UDim2.new(0, 500, 0, 35) or defaultSize})
         navBar.Visible = not minimized
         pageHolder.Visible = not minimized
     end)
-    
-    -- Toggle key
+
     UserInputService.InputBegan:Connect(function(input, gpe)
         if gpe then return end
         if input.KeyCode == Library.ToggleKey then
@@ -280,8 +286,8 @@ function Library:CreateWindow(config)
             main.Visible = Library.Opened
         end
     end)
-    
-    -- Mobile toggle button (floating)
+
+    -- Mobile floating toggle
     local mobileToggle = Create("TextButton", {
         Size = UDim2.new(0, 50, 0, 50),
         Position = UDim2.new(0, 15, 0.5, -25),
@@ -296,7 +302,8 @@ function Library:CreateWindow(config)
         ZIndex = 100,
     })
     Corner(25).Parent = mobileToggle
-    
+    Stroke(Color3.fromRGB(255, 255, 255), 1).Parent = mobileToggle
+
     local toggleDragStart, toggleStartPos
     mobileToggle.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.Touch then
@@ -325,14 +332,13 @@ function Library:CreateWindow(config)
             toggleDragStart = nil
         end
     end)
-    
-    -- Window object
+
     local Window = {}
     Window.Tabs = {}
     Window.ActiveTab = nil
     Window.Gui = gui
     Window.Main = main
-    
+
     function Window:SelectTab(tab)
         if Window.ActiveTab == tab then return end
         if Window.ActiveTab then
@@ -343,11 +349,13 @@ function Library:CreateWindow(config)
         tab.Button.BackgroundColor3 = Library.Theme.Accent
         tab.Page.Visible = true
     end
-    
+
+    function Window:SetToggleKey(key)
+        Library.ToggleKey = key
+    end
+
     function Window:CreateTab(name)
-        local tab = {}
-        tab.Name = name
-        
+        local tab = {Name = name}
         local button = Create("TextButton", {
             Size = UDim2.new(1, 0, 0, 32),
             BackgroundColor3 = Library.Theme.Background,
@@ -360,7 +368,7 @@ function Library:CreateWindow(config)
             Parent = navBar,
         })
         Corner(6).Parent = button
-        
+
         local page = Create("ScrollingFrame", {
             Size = UDim2.new(1, 0, 1, 0),
             BackgroundTransparency = 1,
@@ -384,34 +392,28 @@ function Library:CreateWindow(config)
             PaddingRight = UDim.new(0, 4),
             Parent = page,
         })
-        
+
         button.MouseButton1Click:Connect(function()
             Window:SelectTab(tab)
         end)
-        
+
         tab.Button = button
         tab.Page = page
         tab.Window = Window
-        
-        -- Add element methods
+
         function tab:AddSection(text)
-            local section = Create("TextLabel", {
+            return Create("TextLabel", {
                 Size = UDim2.new(1, 0, 0, 22),
                 BackgroundTransparency = 1,
-                Text = text,
+                Text = "  " .. text,
                 TextColor3 = Library.Theme.SubText,
                 Font = Enum.Font.GothamBold,
                 TextSize = 12,
                 TextXAlignment = Enum.TextXAlignment.Left,
                 Parent = page,
             })
-            Create("UIPadding", {
-                PaddingLeft = UDim.new(0, 6),
-                Parent = section,
-            })
-            return section
         end
-        
+
         function tab:AddLabel(text)
             local label = Create("TextLabel", {
                 Size = UDim2.new(1, 0, 0, 26),
@@ -427,16 +429,13 @@ function Library:CreateWindow(config)
             Corner(6).Parent = label
             return label
         end
-        
+
         function tab:AddButton(config)
             config = config or {}
-            local text = config.Text or "Button"
-            local callback = config.Callback or function() end
-            
             local btn = Create("TextButton", {
                 Size = UDim2.new(1, 0, 0, 32),
                 BackgroundColor3 = Library.Theme.Secondary,
-                Text = text,
+                Text = config.Text or "Button",
                 TextColor3 = Library.Theme.Text,
                 Font = Enum.Font.Gotham,
                 TextSize = 13,
@@ -445,35 +444,29 @@ function Library:CreateWindow(config)
             })
             Corner(6).Parent = btn
             Stroke(Library.Theme.Border, 1).Parent = btn
-            
+
             btn.MouseEnter:Connect(function()
                 if not UserInputService.TouchEnabled then
                     Tween(btn, 0.15, {BackgroundColor3 = Library.Theme.Accent})
                 end
             end)
             btn.MouseLeave:Connect(function()
-                if not UserInputService.TouchEnabled then
-                    Tween(btn, 0.15, {BackgroundColor3 = Library.Theme.Secondary})
-                end
+                Tween(btn, 0.15, {BackgroundColor3 = Library.Theme.Secondary})
             end)
             btn.MouseButton1Click:Connect(function()
-                if not UserInputService.TouchEnabled then
-                    Tween(btn, 0.1, {BackgroundColor3 = Library.Theme.Tertiary})
-                    task.wait(0.1)
-                    Tween(btn, 0.1, {BackgroundColor3 = Library.Theme.Secondary})
+                if config.Callback then
+                    local ok, err = pcall(config.Callback)
+                    if not ok then warn("[SimpleUI] Button callback error: " .. tostring(err)) end
                 end
-                callback()
             end)
             return btn
         end
-        
+
         function tab:AddToggle(config)
             config = config or {}
-            local text = config.Text or "Toggle"
-            local default = config.Default or false
             local flag = config.Flag
             local callback = config.Callback or function() end
-            
+
             local holder = Create("TextButton", {
                 Size = UDim2.new(1, 0, 0, 32),
                 BackgroundColor3 = Library.Theme.Secondary,
@@ -483,63 +476,60 @@ function Library:CreateWindow(config)
             })
             Corner(6).Parent = holder
             Stroke(Library.Theme.Border, 1).Parent = holder
-            
+
             Create("TextLabel", {
                 Size = UDim2.new(1, -60, 1, 0),
                 Position = UDim2.new(0, 12, 0, 0),
                 BackgroundTransparency = 1,
-                Text = text,
+                Text = config.Text or "Toggle",
                 TextColor3 = Library.Theme.Text,
                 Font = Enum.Font.Gotham,
                 TextSize = 13,
                 TextXAlignment = Enum.TextXAlignment.Left,
                 Parent = holder,
             })
-            
+
+            local state = config.Default or false
             local toggleBg = Create("Frame", {
                 Size = UDim2.new(0, 36, 0, 20),
                 Position = UDim2.new(1, -48, 0.5, -10),
-                BackgroundColor3 = default and Library.Theme.ToggleOn or Library.Theme.ToggleOff,
+                BackgroundColor3 = state and Library.Theme.ToggleOn or Library.Theme.ToggleOff,
                 BorderSizePixel = 0,
                 Parent = holder,
             })
             Corner(10).Parent = toggleBg
-            
+
             local knob = Create("Frame", {
                 Size = UDim2.new(0, 16, 0, 16),
-                Position = default and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8),
+                Position = state and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8),
                 BackgroundColor3 = Color3.fromRGB(255, 255, 255),
                 BorderSizePixel = 0,
                 Parent = toggleBg,
             })
             Corner(8).Parent = knob
-            
-            local state = default
-            
-            local function setState(value, fireCallback)
-                state = value
+
+            local function setState(v, fire)
+                state = v
                 Tween(toggleBg, 0.15, {BackgroundColor3 = state and Library.Theme.ToggleOn or Library.Theme.ToggleOff})
                 Tween(knob, 0.15, {Position = state and UDim2.new(1, -18, 0.5, -8) or UDim2.new(0, 2, 0.5, -8)})
                 if flag then Library.Flags[flag] = state end
-                if fireCallback ~= false then callback(state) end
+                if fire ~= false then
+                    local ok, err = pcall(callback, state)
+                    if not ok then warn("[SimpleUI] Toggle error: " .. tostring(err)) end
+                end
             end
-            
+
             holder.MouseButton1Click:Connect(function()
                 setState(not state)
             end)
-            
-            if flag then Library.Flags[flag] = default end
-            if default then callback(default) end
-            
-            local obj = {}
-            obj.Set = function(v) setState(v) end
-            obj.Get = function() return state end
-            return obj
+
+            if flag then Library.Flags[flag] = state end
+
+            return {Set = function(v) setState(v) end, Get = function() return state end}
         end
-        
+
         function tab:AddSlider(config)
             config = config or {}
-            local text = config.Text or "Slider"
             local min = config.Min or 0
             local max = config.Max or 100
             local default = config.Default or min
@@ -547,7 +537,7 @@ function Library:CreateWindow(config)
             local decimals = config.Decimals or 0
             local flag = config.Flag
             local callback = config.Callback or function() end
-            
+
             local holder = Create("Frame", {
                 Size = UDim2.new(1, 0, 0, 50),
                 BackgroundColor3 = Library.Theme.Secondary,
@@ -556,19 +546,19 @@ function Library:CreateWindow(config)
             })
             Corner(6).Parent = holder
             Stroke(Library.Theme.Border, 1).Parent = holder
-            
-            local titleLabel = Create("TextLabel", {
+
+            Create("TextLabel", {
                 Size = UDim2.new(0.7, 0, 0, 22),
                 Position = UDim2.new(0, 12, 0, 4),
                 BackgroundTransparency = 1,
-                Text = text,
+                Text = config.Text or "Slider",
                 TextColor3 = Library.Theme.Text,
                 Font = Enum.Font.Gotham,
                 TextSize = 13,
                 TextXAlignment = Enum.TextXAlignment.Left,
                 Parent = holder,
             })
-            
+
             local valueLabel = Create("TextLabel", {
                 Size = UDim2.new(0.3, -12, 0, 22),
                 Position = UDim2.new(0.7, 0, 0, 4),
@@ -580,7 +570,7 @@ function Library:CreateWindow(config)
                 TextXAlignment = Enum.TextXAlignment.Right,
                 Parent = holder,
             })
-            
+
             local barBg = Create("Frame", {
                 Size = UDim2.new(1, -24, 0, 8),
                 Position = UDim2.new(0, 12, 1, -20),
@@ -589,7 +579,7 @@ function Library:CreateWindow(config)
                 Parent = holder,
             })
             Corner(4).Parent = barBg
-            
+
             local barFill = Create("Frame", {
                 Size = UDim2.new(0, 0, 1, 0),
                 BackgroundColor3 = Library.Theme.Accent,
@@ -597,7 +587,7 @@ function Library:CreateWindow(config)
                 Parent = barBg,
             })
             Corner(4).Parent = barFill
-            
+
             local knob = Create("Frame", {
                 Size = UDim2.new(0, 14, 0, 14),
                 AnchorPoint = Vector2.new(0.5, 0.5),
@@ -608,15 +598,15 @@ function Library:CreateWindow(config)
             })
             Corner(7).Parent = knob
             Stroke(Library.Theme.Accent, 2).Parent = knob
-            
+
             local value = default
             local dragging = false
-            
+
             local function round(n)
-                local mult = 10 ^ decimals
-                return math.floor(n * mult + 0.5) / mult
+                local m = 10 ^ decimals
+                return math.floor(n * m + 0.5) / m
             end
-            
+
             local function updateFromX(x)
                 local rel = math.clamp((x - barBg.AbsolutePosition.X) / barBg.AbsoluteSize.X, 0, 1)
                 value = round(min + (max - min) * rel)
@@ -624,9 +614,10 @@ function Library:CreateWindow(config)
                 knob.Position = UDim2.new(rel, 0, 0.5, 0)
                 valueLabel.Text = tostring(value) .. suffix
                 if flag then Library.Flags[flag] = value end
-                callback(value)
+                local ok, err = pcall(callback, value)
+                if not ok then warn("[SimpleUI] Slider error: " .. tostring(err)) end
             end
-            
+
             local function set(v, fire)
                 v = math.clamp(v, min, max)
                 value = round(v)
@@ -635,90 +626,90 @@ function Library:CreateWindow(config)
                 knob.Position = UDim2.new(rel, 0, 0.5, 0)
                 valueLabel.Text = tostring(value) .. suffix
                 if flag then Library.Flags[flag] = value end
-                if fire ~= false then callback(value) end
+                if fire ~= false then
+                    local ok, err = pcall(callback, value)
+                    if not ok then warn("[SimpleUI] Slider error: " .. tostring(err)) end
+                end
             end
-            
-            local inputBeganConn = barBg.InputBegan:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 
-                   or input.UserInputType == Enum.UserInputType.Touch then
+
+            barBg.InputBegan:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1
+                or input.UserInputType == Enum.UserInputType.Touch then
                     dragging = true
                     updateFromX(input.Position.X)
                 end
             end)
-            
-            local inputChangedConn = UserInputService.InputChanged:Connect(function(input)
-                if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement 
-                   or input.UserInputType == Enum.UserInputType.Touch) then
+
+            UserInputService.InputChanged:Connect(function(input)
+                if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement
+                or input.UserInputType == Enum.UserInputType.Touch) then
                     updateFromX(input.Position.X)
                 end
             end)
-            
-            local inputEndedConn = UserInputService.InputEnded:Connect(function(input)
-                if input.UserInputType == Enum.UserInputType.MouseButton1 
-                   or input.UserInputType == Enum.UserInputType.Touch then
+
+            UserInputService.InputEnded:Connect(function(input)
+                if input.UserInputType == Enum.UserInputType.MouseButton1
+                or input.UserInputType == Enum.UserInputType.Touch then
                     dragging = false
                 end
             end)
-            
+
             set(default, false)
-            if default ~= min then callback(default) end
-            
-            local obj = {}
-            obj.Set = function(v) set(v) end
-            obj.Get = function() return value end
-            return obj
+
+            return {Set = function(v) set(v) end, Get = function() return value end}
         end
-        
+
         function tab:AddDropdown(config)
             config = config or {}
-            local text = config.Text or "Dropdown"
             local options = config.Options or {}
-            local default = config.Default
             local multi = config.Multi or false
             local flag = config.Flag
             local callback = config.Callback or function() end
-            
             local selected = {}
-            if default then
-                if type(default) == "table" then
-                    for _, v in ipairs(default) do selected[v] = true end
+
+            if config.Default then
+                if type(config.Default) == "table" then
+                    for _, v in ipairs(config.Default) do selected[v] = true end
                 else
-                    selected[default] = true
+                    selected[config.Default] = true
                 end
             end
-            
+
             local holder = Create("Frame", {
                 Size = UDim2.new(1, 0, 0, 32),
                 BackgroundColor3 = Library.Theme.Secondary,
                 BorderSizePixel = 0,
                 Parent = page,
                 ClipsDescendants = false,
+                ZIndex = 5,
             })
             Corner(6).Parent = holder
             Stroke(Library.Theme.Border, 1).Parent = holder
-            
+
             local btn = Create("TextButton", {
                 Size = UDim2.new(1, 0, 1, 0),
                 BackgroundTransparency = 1,
                 Text = "",
+                ZIndex = 6,
                 Parent = holder,
             })
-            
+
             Create("TextLabel", {
-                Size = UDim2.new(1, -60, 1, 0),
+                Size = UDim2.new(0.5, 0, 1, 0),
                 Position = UDim2.new(0, 12, 0, 0),
                 BackgroundTransparency = 1,
-                Text = text,
+                Text = config.Text or "Dropdown",
                 TextColor3 = Library.Theme.Text,
                 Font = Enum.Font.Gotham,
                 TextSize = 13,
                 TextXAlignment = Enum.TextXAlignment.Left,
+                ZIndex = 6,
                 Parent = btn,
             })
-            
+
             local valueLabel = Create("TextLabel", {
-                Size = UDim2.new(0, 150, 1, 0),
-                Position = UDim2.new(1, -60, 0, 0),
+                Size = UDim2.new(0.4, 0, 1, 0),
+                Position = UDim2.new(1, -50, 0, 0),
                 AnchorPoint = Vector2.new(1, 0),
                 BackgroundTransparency = 1,
                 Text = "None",
@@ -726,9 +717,10 @@ function Library:CreateWindow(config)
                 Font = Enum.Font.Gotham,
                 TextSize = 12,
                 TextXAlignment = Enum.TextXAlignment.Right,
+                ZIndex = 6,
                 Parent = btn,
             })
-            
+
             local arrow = Create("TextLabel", {
                 Size = UDim2.new(0, 20, 1, 0),
                 Position = UDim2.new(1, -26, 0, 0),
@@ -737,10 +729,10 @@ function Library:CreateWindow(config)
                 TextColor3 = Library.Theme.SubText,
                 Font = Enum.Font.Gotham,
                 TextSize = 10,
+                ZIndex = 6,
                 Parent = btn,
             })
-            
-            -- Dropdown list (parented to page for correct overlay)
+
             local list = Create("Frame", {
                 Size = UDim2.new(1, 0, 0, 0),
                 Position = UDim2.new(0, 0, 1, 4),
@@ -752,8 +744,8 @@ function Library:CreateWindow(config)
             })
             Corner(6).Parent = list
             Stroke(Library.Theme.Border, 1).Parent = list
-            
-            local listLayout = Create("UIListLayout", {
+
+            Create("UIListLayout", {
                 Padding = UDim.new(0, 2),
                 SortOrder = Enum.SortOrder.LayoutOrder,
                 Parent = list,
@@ -765,47 +757,38 @@ function Library:CreateWindow(config)
                 PaddingRight = UDim.new(0, 4),
                 Parent = list,
             })
-            
+
             local optionButtons = {}
             local expanded = false
-            
+
             local function updateDisplay()
-                local selectedList = {}
-                for k, v in pairs(selected) do
-                    if v then table.insert(selectedList, k) end
-                end
-                if #selectedList == 0 then
+                local list_ = {}
+                for k, v in pairs(selected) do if v then table.insert(list_, k) end end
+                if #list_ == 0 then
                     valueLabel.Text = "None"
-                elseif #selectedList == 1 then
-                    valueLabel.Text = selectedList[1]
+                elseif #list_ == 1 then
+                    valueLabel.Text = list_[1]
                 else
-                    valueLabel.Text = selectedList[1] .. " (+" .. (#selectedList - 1) .. ")"
+                    valueLabel.Text = list_[1] .. " (+" .. (#list_ - 1) .. ")"
                 end
-                
-                local returnVal
-                if multi then
-                    returnVal = selectedList
-                else
-                    returnVal = selectedList[1]
-                end
-                if flag then Library.Flags[flag] = returnVal end
-                callback(returnVal)
+                local ret = multi and list_ or list_[1]
+                if flag then Library.Flags[flag] = ret end
+                local ok, err = pcall(callback, ret)
+                if not ok then warn("[SimpleUI] Dropdown error: " .. tostring(err)) end
             end
-            
-            local function setExpanded(state)
-                expanded = state
-                list.Visible = state
-                local count = #options
-                local h = count * 26 + 8
-                Tween(list, 0.2, {Size = state and UDim2.new(1, 0, 0, h) or UDim2.new(1, 0, 0, 0)})
-                arrow.Text = state and "▲" or "▼"
+
+            local function setExpanded(s)
+                expanded = s
+                list.Visible = s
+                local h = #options * 26 + 8
+                Tween(list, 0.2, {Size = s and UDim2.new(1, 0, 0, h) or UDim2.new(1, 0, 0, 0)})
+                arrow.Text = s and "▲" or "▼"
             end
-            
+
             local function refreshOptions(newOptions)
                 options = newOptions or options
                 for _, b in pairs(optionButtons) do b:Destroy() end
                 optionButtons = {}
-                
                 for i, opt in ipairs(options) do
                     local optBtn = Create("TextButton", {
                         Size = UDim2.new(1, 0, 0, 24),
@@ -821,7 +804,7 @@ function Library:CreateWindow(config)
                         Parent = list,
                     })
                     Corner(4).Parent = optBtn
-                    
+
                     optBtn.MouseButton1Click:Connect(function()
                         if multi then
                             selected[opt] = not selected[opt] or nil
@@ -830,55 +813,50 @@ function Library:CreateWindow(config)
                             for k in pairs(selected) do selected[k] = nil end
                             selected[opt] = true
                             for o, b in pairs(optionButtons) do
-                                if o == opt then b.BackgroundColor3 = Library.Theme.Accent
-                                else b.BackgroundColor3 = Library.Theme.Secondary end
+                                b.BackgroundColor3 = (o == opt) and Library.Theme.Accent or Library.Theme.Secondary
                             end
                             setExpanded(false)
                         end
                         updateDisplay()
                     end)
-                    
                     optionButtons[opt] = optBtn
                 end
             end
-            
+
             btn.MouseButton1Click:Connect(function()
                 setExpanded(not expanded)
             end)
-            
+
             refreshOptions()
             if next(selected) then updateDisplay() end
-            
-            local obj = {}
-            obj.Set = function(v)
-                for k in pairs(selected) do selected[k] = nil end
-                if type(v) == "table" then
-                    for _, val in ipairs(v) do selected[val] = true end
-                else
-                    selected[v] = true
+
+            return {
+                Set = function(v)
+                    for k in pairs(selected) do selected[k] = nil end
+                    if type(v) == "table" then
+                        for _, val in ipairs(v) do selected[val] = true end
+                    else
+                        selected[v] = true
+                    end
+                    for o, b in pairs(optionButtons) do
+                        b.BackgroundColor3 = selected[o] and Library.Theme.Accent or Library.Theme.Secondary
+                    end
+                    updateDisplay()
+                end,
+                Refresh = function(newOpts) refreshOptions(newOpts) end,
+                Get = function()
+                    local list_ = {}
+                    for k, v in pairs(selected) do if v then table.insert(list_, k) end end
+                    return multi and list_ or list_[1]
                 end
-                for o, b in pairs(optionButtons) do
-                    b.BackgroundColor3 = selected[o] and Library.Theme.Accent or Library.Theme.Secondary
-                end
-                updateDisplay()
-            end
-            obj.Refresh = function(newOpts) refreshOptions(newOpts) end
-            obj.Get = function()
-                local list_ = {}
-                for k, v in pairs(selected) do if v then table.insert(list_, k) end end
-                return multi and list_ or list_[1]
-            end
-            return obj
+            }
         end
-        
+
         function tab:AddTextbox(config)
             config = config or {}
-            local text = config.Text or "Input"
-            local default = config.Default or ""
-            local placeholder = config.Placeholder or "Type here..."
             local flag = config.Flag
             local callback = config.Callback or function() end
-            
+
             local holder = Create("Frame", {
                 Size = UDim2.new(1, 0, 0, 32),
                 BackgroundColor3 = Library.Theme.Secondary,
@@ -887,25 +865,25 @@ function Library:CreateWindow(config)
             })
             Corner(6).Parent = holder
             Stroke(Library.Theme.Border, 1).Parent = holder
-            
+
             Create("TextLabel", {
                 Size = UDim2.new(0.4, 0, 1, 0),
                 Position = UDim2.new(0, 12, 0, 0),
                 BackgroundTransparency = 1,
-                Text = text,
+                Text = config.Text or "Input",
                 TextColor3 = Library.Theme.Text,
                 Font = Enum.Font.Gotham,
                 TextSize = 13,
                 TextXAlignment = Enum.TextXAlignment.Left,
                 Parent = holder,
             })
-            
+
             local box = Create("TextBox", {
                 Size = UDim2.new(0.55, -12, 0, 24),
                 Position = UDim2.new(0.45, 0, 0.5, -12),
                 BackgroundColor3 = Library.Theme.Tertiary,
-                Text = default,
-                PlaceholderText = placeholder,
+                Text = config.Default or "",
+                PlaceholderText = config.Placeholder or "Type here...",
                 PlaceholderColor3 = Library.Theme.SubText,
                 TextColor3 = Library.Theme.Text,
                 Font = Enum.Font.Gotham,
@@ -914,34 +892,25 @@ function Library:CreateWindow(config)
                 Parent = holder,
             })
             Corner(4).Parent = box
-            Create("UIPadding", {
-                PaddingLeft = UDim.new(0, 8),
-                PaddingRight = UDim.new(0, 8),
-                Parent = box,
-            })
-            
-            box.Focused:Connect(function()
-                Tween(box, 0.15, {BackgroundColor3 = Library.Theme.Accent})
-            end)
+
             box.FocusLost:Connect(function()
-                Tween(box, 0.15, {BackgroundColor3 = Library.Theme.Tertiary})
                 if flag then Library.Flags[flag] = box.Text end
-                callback(box.Text)
+                local ok, err = pcall(callback, box.Text)
+                if not ok then warn("[SimpleUI] Textbox error: " .. tostring(err)) end
             end)
-            
-            local obj = {}
-            obj.Set = function(v) box.Text = v; if flag then Library.Flags[flag] = v end end
-            obj.Get = function() return box.Text end
-            return obj
+
+            return {
+                Set = function(v) box.Text = v; if flag then Library.Flags[flag] = v end end,
+                Get = function() return box.Text end
+            }
         end
-        
+
         function tab:AddKeybind(config)
             config = config or {}
-            local text = config.Text or "Keybind"
             local default = config.Default or Enum.KeyCode.E
             local flag = config.Flag
             local callback = config.Callback or function() end
-            
+
             local holder = Create("Frame", {
                 Size = UDim2.new(1, 0, 0, 32),
                 BackgroundColor3 = Library.Theme.Secondary,
@@ -950,19 +919,19 @@ function Library:CreateWindow(config)
             })
             Corner(6).Parent = holder
             Stroke(Library.Theme.Border, 1).Parent = holder
-            
+
             Create("TextLabel", {
                 Size = UDim2.new(0.5, 0, 1, 0),
                 Position = UDim2.new(0, 12, 0, 0),
                 BackgroundTransparency = 1,
-                Text = text,
+                Text = config.Text or "Keybind",
                 TextColor3 = Library.Theme.Text,
                 Font = Enum.Font.Gotham,
                 TextSize = 13,
                 TextXAlignment = Enum.TextXAlignment.Left,
                 Parent = holder,
             })
-            
+
             local keyBtn = Create("TextButton", {
                 Size = UDim2.new(0, 80, 0, 24),
                 Position = UDim2.new(1, -92, 0.5, -12),
@@ -975,44 +944,41 @@ function Library:CreateWindow(config)
                 Parent = holder,
             })
             Corner(4).Parent = keyBtn
-            
+
             local current = default
             local listening = false
-            
+
             keyBtn.MouseButton1Click:Connect(function()
                 listening = true
                 keyBtn.Text = "..."
             end)
-            
+
             UserInputService.InputBegan:Connect(function(input, gpe)
+                if gpe then return end
                 if listening and input.UserInputType == Enum.UserInputType.Keyboard then
                     current = input.KeyCode
                     keyBtn.Text = current.Name
                     listening = false
                     if flag then Library.Flags[flag] = current end
-                    callback(current)
+                    local ok, err = pcall(callback, current)
+                    if not ok then warn("[SimpleUI] Keybind error: " .. tostring(err)) end
                 end
             end)
-            
-            local obj = {}
-            obj.Get = function() return current end
-            obj.Set = function(k) current = k; keyBtn.Text = k.Name end
-            return obj
+
+            return {
+                Get = function() return current end,
+                Set = function(k) current = k; keyBtn.Text = k.Name end
+            }
         end
-        
-        -- Auto-select first tab
+
         if not Window.ActiveTab then
             Window:SelectTab(tab)
         end
-        
+
         table.insert(Window.Tabs, tab)
         return tab
     end
-    
-    function Window:SetToggleKey(key)
-        Library.ToggleKey = key
-    end
-    
+
     return Window
 end
 
