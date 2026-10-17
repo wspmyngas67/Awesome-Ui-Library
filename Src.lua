@@ -229,7 +229,7 @@ function Library:SaveConfig(name)
     end
     if not ensureFolder() then return false end
 
-    local data = {_version = "3.0", _saved = os.time(), flags = {}}
+    local data = {_version = "3.1", _saved = os.time(), flags = {}}
     for k, v in pairs(Library.Flags) do
         if typeof(v) == "Color3" then
             data.flags[k] = {__type = "Color3", r = v.R, g = v.G, b = v.B}
@@ -315,7 +315,7 @@ end
 function Library:CreateWindow(config)
     config = config or {}
     local title = config.Title or "SimpleUI"
-    local subtitle = config.Subtitle or "v3.0"
+    local subtitle = config.Subtitle or "v3.1"
     local themeName = config.Theme or "Dark"
     Library.Theme = Themes[themeName] or Themes.Dark
     Library.Elements = {}
@@ -335,7 +335,7 @@ function Library:CreateWindow(config)
     Library.Gui = gui
 
     local isMobile = UserInputService.TouchEnabled and not UserInputService.KeyboardEnabled
-    local defaultSize = isMobile and UDim2.new(0, 320, 0, 420) or UDim2.new(0, 580, 0, 400)
+    local defaultSize = config.Size or (isMobile and UDim2.new(0, 340, 0, 440) or UDim2.new(0, 700, 0, 480))
 
     -- Shadow
     local shadow = Create("Frame", {
@@ -358,7 +358,7 @@ function Library:CreateWindow(config)
 
     -- Top bar
     local topBar = Create("Frame", {
-        Name = "TopBar", Size = UDim2.new(1,0,0,45),
+        Name = "TopBar", Size = UDim2.new(1,0,0,50),
         BackgroundColor3 = Library.Theme.Secondary, BorderSizePixel = 0, Parent = main,
     })
     Corner(14).Parent = topBar
@@ -374,10 +374,10 @@ function Library:CreateWindow(config)
     Gradient(Library.Theme.Accent, Library.Theme.Accent2, 0).Parent = accentLine
 
     local logo = Create("Frame", {
-        Size=UDim2.new(0,10,0,10), Position=UDim2.new(0,14,0.5,-5),
+        Size=UDim2.new(0,12,0,12), Position=UDim2.new(0,16,0.5,-6),
         BackgroundColor3=Library.Theme.Accent, BorderSizePixel=0, Parent=topBar,
     })
-    Corner(5).Parent = logo
+    Corner(6).Parent = logo
     Gradient(Library.Theme.Accent, Library.Theme.Accent2, 45).Parent = logo
 
     task.spawn(function()
@@ -388,25 +388,25 @@ function Library:CreateWindow(config)
     end)
 
     Create("TextLabel", {
-        Size=UDim2.new(1,-160,0,20), Position=UDim2.new(0,32,0,5),
+        Size=UDim2.new(1,-180,0,22), Position=UDim2.new(0,36,0,6),
         BackgroundTransparency=1, Text=title, TextColor3=Library.Theme.Text,
-        Font=Enum.Font.GothamBold, TextSize=15,
+        Font=Enum.Font.GothamBold, TextSize=16,
         TextXAlignment=Enum.TextXAlignment.Left, Parent=topBar,
     })
     Create("TextLabel", {
-        Size=UDim2.new(1,-160,0,14), Position=UDim2.new(0,32,0,24),
+        Size=UDim2.new(1,-180,0,14), Position=UDim2.new(0,36,0,28),
         BackgroundTransparency=1, Text=subtitle, TextColor3=Library.Theme.SubText,
-        Font=Enum.Font.Gotham, TextSize=10,
+        Font=Enum.Font.Gotham, TextSize=11,
         TextXAlignment=Enum.TextXAlignment.Left, Parent=topBar,
     })
 
     local btnHolder = Create("Frame", {
-        Size=UDim2.new(0,110,1,0), Position=UDim2.new(1,-120,0,0),
+        Size=UDim2.new(0,120,1,0), Position=UDim2.new(1,-130,0,0),
         BackgroundTransparency=1, Parent=topBar,
     })
 
     local searchBtn = Create("TextButton", {
-        Size=UDim2.new(0,28,0,28), Position=UDim2.new(0,0,0.5,-14),
+        Size=UDim2.new(0,30,0,30), Position=UDim2.new(0,0,0.5,-15),
         BackgroundColor3=Library.Theme.Tertiary, Text="🔍", TextColor3=Library.Theme.Text,
         Font=Enum.Font.GothamBold, TextSize=13, BorderSizePixel=0,
         AutoButtonColor=false, Parent=btnHolder,
@@ -414,7 +414,7 @@ function Library:CreateWindow(config)
     Corner(8).Parent = searchBtn
 
     local minimizeBtn = Create("TextButton", {
-        Size=UDim2.new(0,28,0,28), Position=UDim2.new(0,34,0.5,-14),
+        Size=UDim2.new(0,30,0,30), Position=UDim2.new(0,36,0.5,-15),
         BackgroundColor3=Library.Theme.Tertiary, Text="—", TextColor3=Library.Theme.Text,
         Font=Enum.Font.GothamBold, TextSize=14, BorderSizePixel=0,
         AutoButtonColor=false, Parent=btnHolder,
@@ -422,7 +422,7 @@ function Library:CreateWindow(config)
     Corner(8).Parent = minimizeBtn
 
     local closeBtn = Create("TextButton", {
-        Size=UDim2.new(0,28,0,28), Position=UDim2.new(0,68,0.5,-14),
+        Size=UDim2.new(0,30,0,30), Position=UDim2.new(0,72,0.5,-15),
         BackgroundColor3=Color3.fromRGB(220,60,80), Text="✕", TextColor3=Color3.fromRGB(255,255,255),
         Font=Enum.Font.GothamBold, TextSize=12, BorderSizePixel=0,
         AutoButtonColor=false, Parent=btnHolder,
@@ -446,7 +446,7 @@ function Library:CreateWindow(config)
 
     -- Search bar
     local searchBar = Create("Frame", {
-        Size = UDim2.new(1, -24, 0, 0), Position = UDim2.new(0, 12, 0, 51),
+        Size = UDim2.new(1, -24, 0, 0), Position = UDim2.new(0, 12, 0, 56),
         BackgroundColor3 = Library.Theme.Secondary, BorderSizePixel = 0,
         Visible = false, ClipsDescendants = true, Parent = main, ZIndex = 50,
     })
@@ -465,16 +465,16 @@ function Library:CreateWindow(config)
 
     -- Nav bar
     local navBar = Create("Frame", {
-        Name = "NavBar", Size = UDim2.new(0,130,1,-60),
-        Position = UDim2.new(0,8,0,53), BackgroundTransparency = 1, Parent = main,
+        Name = "NavBar", Size = UDim2.new(0,155,1,-68),
+        Position = UDim2.new(0,8,0,58), BackgroundTransparency = 1, Parent = main,
     })
     Create("UIListLayout", {
-        Padding=UDim.new(0,5), SortOrder=Enum.SortOrder.LayoutOrder, Parent=navBar,
+        Padding=UDim.new(0,6), SortOrder=Enum.SortOrder.LayoutOrder, Parent=navBar,
     })
 
     local pageHolder = Create("Frame", {
-        Name = "PageHolder", Size = UDim2.new(1,-155,1,-60),
-        Position = UDim2.new(0,147,0,53), BackgroundTransparency = 1, Parent = main,
+        Name = "PageHolder", Size = UDim2.new(1,-178,1,-68),
+        Position = UDim2.new(0,171,0,58), BackgroundTransparency = 1, Parent = main,
     })
 
     local minimized = false
@@ -491,7 +491,7 @@ function Library:CreateWindow(config)
 
     minimizeBtn.MouseButton1Click:Connect(function()
         minimized = not minimized
-        local targetSize = minimized and UDim2.new(0, 580, 0, 45) or defaultSize
+        local targetSize = minimized and UDim2.new(0, 700, 0, 50) or defaultSize
         Tween(main, 0.3, {Size=targetSize}, Enum.EasingStyle.Back)
         Tween(shadow, 0.3, {Size=targetSize}, Enum.EasingStyle.Back)
         navBar.Visible = not minimized
@@ -511,27 +511,27 @@ function Library:CreateWindow(config)
 
     -- Mobile toggle
     local mobileToggle = Create("TextButton", {
-        Size=UDim2.new(0,55,0,55), Position=UDim2.new(0,15,0.5,-27),
+        Size=UDim2.new(0,58,0,58), Position=UDim2.new(0,15,0.5,-29),
         BackgroundColor3=Library.Theme.Accent, Text="✦", TextColor3=Color3.fromRGB(255,255,255),
-        Font=Enum.Font.GothamBold, TextSize=22, BorderSizePixel=0,
+        Font=Enum.Font.GothamBold, TextSize=24, BorderSizePixel=0,
         Visible=isMobile, AutoButtonColor=false, Parent=gui, ZIndex=100,
     })
-    Corner(28).Parent = mobileToggle
+    Corner(29).Parent = mobileToggle
     Gradient(Library.Theme.Accent, Library.Theme.Accent2, 45).Parent = mobileToggle
     Stroke(Color3.fromRGB(255,255,255), 1.5, 0.5).Parent = mobileToggle
 
     task.spawn(function()
         while mobileToggle.Parent do
             Tween(mobileToggle, 1.2, {
-                Size=UDim2.new(0,60,0,60),
-                Position=UDim2.new(mobileToggle.Position.X.Scale, mobileToggle.Position.X.Offset-2.5,
-                                   mobileToggle.Position.Y.Scale, mobileToggle.Position.Y.Offset-2.5),
+                Size=UDim2.new(0,64,0,64),
+                Position=UDim2.new(mobileToggle.Position.X.Scale, mobileToggle.Position.X.Offset-3,
+                                   mobileToggle.Position.Y.Scale, mobileToggle.Position.Y.Offset-3),
             }, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
             task.wait(1.2)
             Tween(mobileToggle, 1.2, {
-                Size=UDim2.new(0,55,0,55),
-                Position=UDim2.new(mobileToggle.Position.X.Scale, mobileToggle.Position.X.Offset+2.5,
-                                   mobileToggle.Position.Y.Scale, mobileToggle.Position.Y.Offset+2.5),
+                Size=UDim2.new(0,58,0,58),
+                Position=UDim2.new(mobileToggle.Position.X.Scale, mobileToggle.Position.X.Offset+3,
+                                   mobileToggle.Position.Y.Scale, mobileToggle.Position.Y.Offset+3),
             }, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
             task.wait(1.2)
         end
@@ -592,10 +592,10 @@ function Library:CreateWindow(config)
     searchBtn.MouseButton1Click:Connect(function()
         searchOpen = not searchOpen
         if searchOpen then
-            Tween(searchBar, 0.25, {Size = UDim2.new(1,-24,0,32)}, Enum.EasingStyle.Quart)
+            Tween(searchBar, 0.25, {Size = UDim2.new(1,-24,0,34)}, Enum.EasingStyle.Quart)
             searchBar.Visible = true
-            Tween(navBar, 0.25, {Position = UDim2.new(0,8,0,91)})
-            Tween(pageHolder, 0.25, {Position = UDim2.new(0,147,0,91), Size = UDim2.new(1,-155,1,-98)})
+            Tween(navBar, 0.25, {Position = UDim2.new(0,8,0,98)})
+            Tween(pageHolder, 0.25, {Position = UDim2.new(0,171,0,98), Size = UDim2.new(1,-178,1,-108)})
             task.wait(0.15)
             searchBox:CaptureFocus()
         else
@@ -606,8 +606,8 @@ function Library:CreateWindow(config)
             end
             task.wait(0.25)
             searchBar.Visible = false
-            Tween(navBar, 0.25, {Position = UDim2.new(0,8,0,53)})
-            Tween(pageHolder, 0.25, {Position = UDim2.new(0,147,0,53), Size = UDim2.new(1,-155,1,-60)})
+            Tween(navBar, 0.25, {Position = UDim2.new(0,8,0,58)})
+            Tween(pageHolder, 0.25, {Position = UDim2.new(0,171,0,58), Size = UDim2.new(1,-178,1,-68)})
         end
     end)
 
@@ -628,10 +628,10 @@ function Library:CreateWindow(config)
     function Window:CreateTab(name)
         local tab = {Name = name}
         local button = Create("TextButton", {
-            Size=UDim2.new(1,0,0,36),
+            Size=UDim2.new(1,0,0,42),
             BackgroundColor3=Library.Theme.Background, BackgroundTransparency=0.6,
             Text="   "..name, TextColor3=Library.Theme.Text,
-            Font=Enum.Font.GothamMedium, TextSize=13,
+            Font=Enum.Font.GothamMedium, TextSize=14,
             TextXAlignment=Enum.TextXAlignment.Left, BorderSizePixel=0,
             AutoButtonColor=false, Parent=navBar,
         })
@@ -658,17 +658,17 @@ function Library:CreateWindow(config)
 
         local page = Create("ScrollingFrame", {
             Size=UDim2.new(1,0,1,0), BackgroundTransparency=1, BorderSizePixel=0,
-            ScrollBarThickness=3, ScrollBarImageColor3=Library.Theme.Accent,
+            ScrollBarThickness=4, ScrollBarImageColor3=Library.Theme.Accent,
             CanvasSize=UDim2.new(0,0,0,0), Visible=false, Parent=pageHolder,
         })
         local layout = Create("UIListLayout", {
-            Padding=UDim.new(0,7), SortOrder=Enum.SortOrder.LayoutOrder, Parent=page,
+            Padding=UDim.new(0,9), SortOrder=Enum.SortOrder.LayoutOrder, Parent=page,
         })
         layout:GetPropertyChangedSignal("AbsoluteContentSize"):Connect(function()
             page.CanvasSize = UDim2.new(0,0,0,layout.AbsoluteContentSize.Y+10)
         end)
         Create("UIPadding", {
-            PaddingLeft=UDim.new(0,4), PaddingRight=UDim.new(0,6), Parent=page,
+            PaddingLeft=UDim.new(0,4), PaddingRight=UDim.new(0,8), Parent=page,
         })
 
         button.MouseButton1Click:Connect(function() Window:SelectTab(tab) end)
@@ -745,10 +745,10 @@ function Library:CreateWindow(config)
         -- ===== SECTION =====
         function tab:AddSection(text)
             local sectionHolder = Create("Frame", {
-                Size=UDim2.new(1,0,0,26), BackgroundTransparency=1, Parent=page,
+                Size=UDim2.new(1,0,0,28), BackgroundTransparency=1, Parent=page,
             })
             local dot = Create("Frame", {
-                Size=UDim2.new(0,3,0,14), Position=UDim2.new(0,2,0.5,-7),
+                Size=UDim2.new(0,3,0,16), Position=UDim2.new(0,2,0.5,-8),
                 BackgroundColor3=Library.Theme.Accent, BorderSizePixel=0, Parent=sectionHolder,
             })
             Corner(2).Parent = dot
@@ -765,7 +765,7 @@ function Library:CreateWindow(config)
         -- ===== LABEL =====
         function tab:AddLabel(text)
             local label = Create("TextLabel", {
-                Size=UDim2.new(1,0,0,30), BackgroundColor3=Library.Theme.Secondary,
+                Size=UDim2.new(1,0,0,34), BackgroundColor3=Library.Theme.Secondary,
                 BackgroundTransparency=0.5, Text="  "..text, TextColor3=Library.Theme.Text,
                 Font=Enum.Font.Gotham, TextSize=13,
                 TextXAlignment=Enum.TextXAlignment.Left, BorderSizePixel=0, Parent=page,
@@ -779,7 +779,7 @@ function Library:CreateWindow(config)
         function tab:AddButton(config)
             config = config or {}
             local btn = Create("TextButton", {
-                Size=UDim2.new(1,0,0,36), BackgroundColor3=Library.Theme.Secondary,
+                Size=UDim2.new(1,0,0,40), BackgroundColor3=Library.Theme.Secondary,
                 Text="", BorderSizePixel=0, AutoButtonColor=false, Parent=page,
             })
             Corner(8).Parent = btn
@@ -843,7 +843,7 @@ function Library:CreateWindow(config)
             local callback = config.Callback or function() end
 
             local holder = Create("TextButton", {
-                Size=UDim2.new(1,0,0,36), BackgroundColor3=Library.Theme.Secondary,
+                Size=UDim2.new(1,0,0,40), BackgroundColor3=Library.Theme.Secondary,
                 Text="", BorderSizePixel=0, AutoButtonColor=false, Parent=page,
             })
             Corner(8).Parent = holder
@@ -851,7 +851,7 @@ function Library:CreateWindow(config)
             Gradient(Library.Theme.Secondary, Library.Theme.Tertiary, 45).Parent = holder
 
             Create("TextLabel", {
-                Size=UDim2.new(1,-70,1,0), Position=UDim2.new(0,14,0,0),
+                Size=UDim2.new(1,-76,1,0), Position=UDim2.new(0,16,0,0),
                 BackgroundTransparency=1, Text=config.Text or "Toggle",
                 TextColor3=Library.Theme.Text, Font=Enum.Font.Gotham, TextSize=13,
                 TextXAlignment=Enum.TextXAlignment.Left, Parent=holder,
@@ -859,23 +859,23 @@ function Library:CreateWindow(config)
 
             local state = config.Default or false
             local toggleBg = Create("Frame", {
-                Size=UDim2.new(0,40,0,22), Position=UDim2.new(1,-54,0.5,-11),
+                Size=UDim2.new(0,44,0,24), Position=UDim2.new(1,-60,0.5,-12),
                 BackgroundColor3=state and Library.Theme.Accent or Library.Theme.Tertiary,
                 BorderSizePixel=0, Parent=holder,
             })
-            Corner(11).Parent = toggleBg
+            Corner(12).Parent = toggleBg
             local bgGrad = Gradient(
                 state and Library.Theme.Accent or Library.Theme.Tertiary,
                 state and Library.Theme.Accent2 or Library.Theme.Tertiary, 0)
             bgGrad.Parent = toggleBg
 
             local knob = Create("Frame", {
-                Size=UDim2.new(0,18,0,18),
-                Position=state and UDim2.new(1,-20,0.5,-9) or UDim2.new(0,2,0.5,-9),
+                Size=UDim2.new(0,20,0,20),
+                Position=state and UDim2.new(1,-22,0.5,-10) or UDim2.new(0,2,0.5,-10),
                 BackgroundColor3=Color3.fromRGB(255,255,255),
                 BorderSizePixel=0, Parent=toggleBg,
             })
-            Corner(9).Parent = knob
+            Corner(10).Parent = knob
 
             local function setState(v, fire)
                 state = v
@@ -886,7 +886,7 @@ function Library:CreateWindow(config)
                 bgGrad.Parent = toggleBg
                 Tween(toggleBg, 0.2, {BackgroundColor3=state and Library.Theme.Accent or Library.Theme.Tertiary})
                 Tween(knob, 0.2, {
-                    Position=state and UDim2.new(1,-20,0.5,-9) or UDim2.new(0,2,0.5,-9)
+                    Position=state and UDim2.new(1,-22,0.5,-10) or UDim2.new(0,2,0.5,-10)
                 }, Enum.EasingStyle.Back)
                 if flag then Library.Flags[flag] = state end
                 if fire ~= false then
@@ -920,7 +920,7 @@ function Library:CreateWindow(config)
             local callback = config.Callback or function() end
 
             local holder = Create("Frame", {
-                Size=UDim2.new(1,0,0,55), BackgroundColor3=Library.Theme.Secondary,
+                Size=UDim2.new(1,0,0,62), BackgroundColor3=Library.Theme.Secondary,
                 BorderSizePixel=0, Parent=page,
             })
             Corner(8).Parent = holder
@@ -928,37 +928,37 @@ function Library:CreateWindow(config)
             Gradient(Library.Theme.Secondary, Library.Theme.Tertiary, 45).Parent = holder
 
             Create("TextLabel", {
-                Size=UDim2.new(0.7,0,0,22), Position=UDim2.new(0,14,0,6),
+                Size=UDim2.new(0.7,0,0,22), Position=UDim2.new(0,16,0,8),
                 BackgroundTransparency=1, Text=config.Text or "Slider",
                 TextColor3=Library.Theme.Text, Font=Enum.Font.Gotham, TextSize=13,
                 TextXAlignment=Enum.TextXAlignment.Left, Parent=holder,
             })
 
             local valueLabel = Create("TextLabel", {
-                Size=UDim2.new(0.3,-14,0,22), Position=UDim2.new(0.7,0,0,6),
+                Size=UDim2.new(0.3,-16,0,22), Position=UDim2.new(0.7,0,0,8),
                 BackgroundTransparency=1, Text=tostring(default)..suffix,
                 TextColor3=Library.Theme.Accent, Font=Enum.Font.GothamBold, TextSize=13,
                 TextXAlignment=Enum.TextXAlignment.Right, Parent=holder,
             })
 
             local barBg = Create("Frame", {
-                Size=UDim2.new(1,-28,0,8), Position=UDim2.new(0,14,1,-22),
+                Size=UDim2.new(1,-32,0,10), Position=UDim2.new(0,16,1,-24),
                 BackgroundColor3=Library.Theme.Tertiary, BorderSizePixel=0, Parent=holder,
             })
-            Corner(4).Parent = barBg
+            Corner(5).Parent = barBg
             local barFill = Create("Frame", {
                 Size=UDim2.new(0,0,1,0), BackgroundColor3=Library.Theme.Accent,
                 BorderSizePixel=0, Parent=barBg,
             })
-            Corner(4).Parent = barFill
+            Corner(5).Parent = barFill
             Gradient(Library.Theme.Accent, Library.Theme.Accent2, 0).Parent = barFill
 
             local knob = Create("Frame", {
-                Size=UDim2.new(0,16,0,16), AnchorPoint=Vector2.new(0.5,0.5),
+                Size=UDim2.new(0,18,0,18), AnchorPoint=Vector2.new(0.5,0.5),
                 Position=UDim2.new(0,0,0.5,0), BackgroundColor3=Color3.fromRGB(255,255,255),
                 BorderSizePixel=0, Parent=barBg,
             })
-            Corner(8).Parent = knob
+            Corner(9).Parent = knob
             Stroke(Library.Theme.Accent, 2).Parent = knob
 
             local value = default
@@ -1040,7 +1040,7 @@ function Library:CreateWindow(config)
             end
 
             local holder = Create("Frame", {
-                Size=UDim2.new(1,0,0,36), BackgroundColor3=Library.Theme.Secondary,
+                Size=UDim2.new(1,0,0,40), BackgroundColor3=Library.Theme.Secondary,
                 BorderSizePixel=0, Parent=page, ClipsDescendants=false, ZIndex=5,
             })
             Corner(8).Parent = holder
@@ -1053,7 +1053,7 @@ function Library:CreateWindow(config)
             })
 
             Create("TextLabel", {
-                Size=UDim2.new(0.5,0,1,0), Position=UDim2.new(0,14,0,0),
+                Size=UDim2.new(0.5,0,1,0), Position=UDim2.new(0,16,0,0),
                 BackgroundTransparency=1, Text=config.Text or "Dropdown",
                 TextColor3=Library.Theme.Text, Font=Enum.Font.Gotham, TextSize=13,
                 TextXAlignment=Enum.TextXAlignment.Left, ZIndex=6, Parent=btn,
@@ -1105,7 +1105,7 @@ function Library:CreateWindow(config)
             local function setExpanded(s)
                 expanded = s
                 list.Visible = s
-                local h = #options * 28 + 10
+                local h = #options * 30 + 10
                 Tween(list, 0.25, {
                     Size = s and UDim2.new(1,0,0,h) or UDim2.new(1,0,0,0)
                 }, Enum.EasingStyle.Quart)
@@ -1118,7 +1118,7 @@ function Library:CreateWindow(config)
                 optionButtons = {}
                 for i, opt in ipairs(options) do
                     local optBtn = Create("TextButton", {
-                        Size=UDim2.new(1,0,0,26),
+                        Size=UDim2.new(1,0,0,28),
                         BackgroundColor3=selected[opt] and Library.Theme.Accent or Library.Theme.Secondary,
                         BackgroundTransparency=selected[opt] and 0 or 0.4,
                         Text="   "..tostring(opt), TextColor3=Library.Theme.Text,
@@ -1193,7 +1193,7 @@ function Library:CreateWindow(config)
             local callback = config.Callback or function() end
 
             local holder = Create("Frame", {
-                Size=UDim2.new(1,0,0,36), BackgroundColor3=Library.Theme.Secondary,
+                Size=UDim2.new(1,0,0,40), BackgroundColor3=Library.Theme.Secondary,
                 BorderSizePixel=0, Parent=page,
             })
             Corner(8).Parent = holder
@@ -1201,14 +1201,14 @@ function Library:CreateWindow(config)
             Gradient(Library.Theme.Secondary, Library.Theme.Tertiary, 45).Parent = holder
 
             Create("TextLabel", {
-                Size=UDim2.new(0.4,0,1,0), Position=UDim2.new(0,14,0,0),
+                Size=UDim2.new(0.4,0,1,0), Position=UDim2.new(0,16,0,0),
                 BackgroundTransparency=1, Text=config.Text or "Input",
                 TextColor3=Library.Theme.Text, Font=Enum.Font.Gotham, TextSize=13,
                 TextXAlignment=Enum.TextXAlignment.Left, Parent=holder,
             })
 
             local box = Create("TextBox", {
-                Size=UDim2.new(0.55,-14,0,26), Position=UDim2.new(0.45,0,0.5,-13),
+                Size=UDim2.new(0.55,-18,0,28), Position=UDim2.new(0.45,0,0.5,-14),
                 BackgroundColor3=Library.Theme.Tertiary, Text=config.Default or "",
                 PlaceholderText=config.Placeholder or "Type here...",
                 PlaceholderColor3=Library.Theme.SubText, TextColor3=Library.Theme.Text,
@@ -1244,7 +1244,7 @@ function Library:CreateWindow(config)
             local callback = config.Callback or function() end
 
             local holder = Create("Frame", {
-                Size=UDim2.new(1,0,0,36), BackgroundColor3=Library.Theme.Secondary,
+                Size=UDim2.new(1,0,0,40), BackgroundColor3=Library.Theme.Secondary,
                 BorderSizePixel=0, Parent=page,
             })
             Corner(8).Parent = holder
@@ -1252,14 +1252,14 @@ function Library:CreateWindow(config)
             Gradient(Library.Theme.Secondary, Library.Theme.Tertiary, 45).Parent = holder
 
             Create("TextLabel", {
-                Size=UDim2.new(0.5,0,1,0), Position=UDim2.new(0,14,0,0),
+                Size=UDim2.new(0.5,0,1,0), Position=UDim2.new(0,16,0,0),
                 BackgroundTransparency=1, Text=config.Text or "Keybind",
                 TextColor3=Library.Theme.Text, Font=Enum.Font.Gotham, TextSize=13,
                 TextXAlignment=Enum.TextXAlignment.Left, Parent=holder,
             })
 
             local keyBtn = Create("TextButton", {
-                Size=UDim2.new(0,90,0,26), Position=UDim2.new(1,-104,0.5,-13),
+                Size=UDim2.new(0,100,0,28), Position=UDim2.new(1,-116,0.5,-14),
                 BackgroundColor3=Library.Theme.Tertiary, Text=default.Name,
                 TextColor3=Library.Theme.Text, Font=Enum.Font.GothamBold, TextSize=12,
                 BorderSizePixel=0, AutoButtonColor=false, Parent=holder,
@@ -1312,7 +1312,7 @@ function Library:CreateWindow(config)
             local h, s, v = Color3.toHSV(color)
 
             local holder = Create("Frame", {
-                Size=UDim2.new(1,0,0,36), BackgroundColor3=Library.Theme.Secondary,
+                Size=UDim2.new(1,0,0,40), BackgroundColor3=Library.Theme.Secondary,
                 BorderSizePixel=0, Parent=page, ClipsDescendants=false, ZIndex=5,
             })
             Corner(8).Parent = holder
@@ -1320,21 +1320,21 @@ function Library:CreateWindow(config)
             Gradient(Library.Theme.Secondary, Library.Theme.Tertiary, 45).Parent = holder
 
             Create("TextLabel", {
-                Size=UDim2.new(1,-70,1,0), Position=UDim2.new(0,14,0,0),
+                Size=UDim2.new(1,-76,1,0), Position=UDim2.new(0,16,0,0),
                 BackgroundTransparency=1, Text=config.Text or "Color",
                 TextColor3=Library.Theme.Text, Font=Enum.Font.Gotham, TextSize=13,
                 TextXAlignment=Enum.TextXAlignment.Left, Parent=holder,
             })
 
             local preview = Create("Frame", {
-                Size=UDim2.new(0,32,0,22), Position=UDim2.new(1,-46,0.5,-11),
+                Size=UDim2.new(0,36,0,24), Position=UDim2.new(1,-52,0.5,-12),
                 BackgroundColor3=color, BorderSizePixel=0, ZIndex=6, Parent=holder,
             })
             Corner(6).Parent = preview
             Stroke(Color3.fromRGB(255,255,255), 1, 0.5).Parent = preview
 
             local popup = Create("Frame", {
-                Size=UDim2.new(0,220,0,0), Position=UDim2.new(0,0,1,4),
+                Size=UDim2.new(0,240,0,0), Position=UDim2.new(0,0,1,4),
                 BackgroundColor3=Library.Theme.Tertiary, BorderSizePixel=0,
                 Visible=false, ClipsDescendants=true, ZIndex=60, Parent=holder,
             })
@@ -1342,7 +1342,7 @@ function Library:CreateWindow(config)
             Stroke(Library.Theme.Border, 1, 0.2).Parent = popup
 
             local svBg = Create("Frame", {
-                Size=UDim2.new(1,-20,0,130), Position=UDim2.new(0,10,0,10),
+                Size=UDim2.new(1,-20,0,140), Position=UDim2.new(0,10,0,10),
                 BackgroundColor3=Color3.fromRGB(255,0,0), BorderSizePixel=0,
                 ZIndex=61, Parent=popup,
             })
@@ -1376,19 +1376,19 @@ function Library:CreateWindow(config)
             bg2.Parent = blackGrad
 
             local svCursor = Create("Frame", {
-                Size=UDim2.new(0,10,0,10), AnchorPoint=Vector2.new(0.5,0.5),
+                Size=UDim2.new(0,12,0,12), AnchorPoint=Vector2.new(0.5,0.5),
                 Position=UDim2.new(s,0,1-v,0), BackgroundColor3=Color3.fromRGB(255,255,255),
                 BorderSizePixel=0, ZIndex=64, Parent=svBg,
             })
-            Corner(5).Parent = svCursor
+            Corner(6).Parent = svCursor
             Stroke(Color3.fromRGB(0,0,0), 2).Parent = svCursor
 
             local hueBar = Create("Frame", {
-                Size=UDim2.new(1,-20,0,16), Position=UDim2.new(0,10,0,148),
+                Size=UDim2.new(1,-20,0,18), Position=UDim2.new(0,10,0,160),
                 BackgroundColor3=Color3.fromRGB(255,0,0), BorderSizePixel=0,
                 ZIndex=61, Parent=popup,
             })
-            Corner(8).Parent = hueBar
+            Corner(9).Parent = hueBar
             local hueGrad = Create("UIGradient", {
                 Color = ColorSequence.new({
                     ColorSequenceKeypoint.new(0.00, Color3.fromRGB(255,0,0)),
@@ -1412,7 +1412,7 @@ function Library:CreateWindow(config)
             Stroke(Color3.fromRGB(0,0,0), 1.5).Parent = hueCursor
 
             local hexBox = Create("TextBox", {
-                Size=UDim2.new(1,-20,0,26), Position=UDim2.new(0,10,0,172),
+                Size=UDim2.new(1,-20,0,28), Position=UDim2.new(0,10,0,186),
                 BackgroundColor3=Library.Theme.Secondary, Text="", PlaceholderText="#FFFFFF",
                 PlaceholderColor3=Library.Theme.SubText, TextColor3=Library.Theme.Text,
                 Font=Enum.Font.Code, TextSize=12, BorderSizePixel=0,
@@ -1506,7 +1506,7 @@ function Library:CreateWindow(config)
                     expanded = not expanded
                     popup.Visible = expanded
                     Tween(popup, 0.3, {
-                        Size = expanded and UDim2.new(0,220,0,206) or UDim2.new(0,220,0,0)
+                        Size = expanded and UDim2.new(0,240,0,224) or UDim2.new(0,240,0,0)
                     }, Enum.EasingStyle.Quart)
                 end
             end)
@@ -1545,7 +1545,7 @@ function Library:CreateWindow(config)
     function Window:EnableStats()
         if Window._statsFrame then return end
         local panel = Create("Frame", {
-            Size=UDim2.new(0,150,0,80), Position=UDim2.new(1,-160,1,10),
+            Size=UDim2.new(0,160,0,86), Position=UDim2.new(1,-170,1,10),
             BackgroundColor3=Library.Theme.Secondary, BorderSizePixel=0,
             ZIndex=90, Parent=main,
         })
@@ -1564,14 +1564,14 @@ function Library:CreateWindow(config)
         for i, name in ipairs(labels) do
             Create("TextLabel", {
                 Size=UDim2.new(0.5,-6,0,16),
-                Position=UDim2.new(0,8,0,24+((i-1)*16)),
+                Position=UDim2.new(0,8,0,26+((i-1)*16)),
                 BackgroundTransparency=1, Text=name,
                 TextColor3=Library.Theme.SubText, Font=Enum.Font.Gotham, TextSize=11,
                 TextXAlignment=Enum.TextXAlignment.Left, Parent=panel,
             })
             rows[name] = Create("TextLabel", {
                 Size=UDim2.new(0.5,-6,0,16),
-                Position=UDim2.new(0.5,0,0,24+((i-1)*16)),
+                Position=UDim2.new(0.5,0,0,26+((i-1)*16)),
                 BackgroundTransparency=1, Text="--",
                 TextColor3=Library.Theme.Text, Font=Enum.Font.GothamBold, TextSize=11,
                 TextXAlignment=Enum.TextXAlignment.Right, Parent=panel,
